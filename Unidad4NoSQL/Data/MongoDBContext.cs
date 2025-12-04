@@ -10,7 +10,7 @@ namespace Unidad4NoSQL.Data
     public class MongoDbContext
     {
         private readonly IMongoDatabase _database;
-        private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
+       private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
 
         public MongoDbContext()
         {

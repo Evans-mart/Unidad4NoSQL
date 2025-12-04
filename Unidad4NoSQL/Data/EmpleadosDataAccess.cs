@@ -1,43 +1,39 @@
 ﻿// Data/EmpleadosDataAccess.cs
 using Unidad4NoSQL.Model;
 using NLog;
+using System.Threading.Tasks;
 
 namespace Unidad4NoSQL.Data
 {
-    // Esta clase solo existirá para orquestar la inserción de Empleado (que ahora es un solo documento)
     public class EmpleadosDataAccess
     {
         private static readonly Logger _logger = LogManager.GetCurrentClassLogger();
-        private readonly MongoDBDataAccess _mongoData; // Usamos el nuevo acceso a datos
+        private readonly MongoDBDataAccess _mongoData;
 
         public EmpleadosDataAccess()
         {
-            _mongoData = new MongoDBDataAccess(); // Se encarga de la inserción real
+            _mongoData = new MongoDBDataAccess();
         }
-
-        // El método de alta DEBE ser asíncrono
-        public async Task<String> InsertarEmpleadoAsync(Empleado empleado)
+        // Retorna el ID (string), o el código de error ("DUPLICADO"), o null.
+        public async Task<string> InsertarEmpleadoAsync(Empleado empleado)
         {
-            //if (empleado == null) return -1;
+            _logger.Info($"Iniciando inserción de Empleado en MongoDB a través de DAL...");
 
-            _logger.Info($"Iniciando inserción de Empleado en MongoDB...");
+            // Llamamos al método real de inserción en MongoDBDataAccess
+            string resultado = await _mongoData.InsertarUsuarioAsync(empleado);
 
-            // Ahora, la inserción es atómica y no necesita lógica compleja de múltiples tablas.
-            // La lógica de TRAY_LAB ahora está incrustada en el objeto Empleado (Model/Empleado.cs).
-
-            // Llama al método real de inserción en MongoDBDataAccess
-            String idGenerado = await _mongoData.InsertarUsuarioAsync(empleado);
-
-            if (idGenerado.Length > 0)
+            // Se registra el resultado
+            if (resultado != null && resultado.Length > 0 && !resultado.StartsWith("DUPLICADO_"))
             {
-                _logger.Info($"Empleado insertado exitosamente con ID: {idGenerado}");
+                _logger.Info($"Inserción completada. ID generado: {resultado}");
             }
             else
             {
-                _logger.Error("Fallo al insertar el empleado en MongoDB.");
+                _logger.Error($"Inserción fallida o con duplicidad. Código/Mensaje: {resultado}");
             }
-            Console.WriteLine($"✅ ID generado y listo para insertar: {idGenerado}");
-            return idGenerado;
+
+            // Simplemente retransmite el resultado
+            return resultado;
         }
 
     }

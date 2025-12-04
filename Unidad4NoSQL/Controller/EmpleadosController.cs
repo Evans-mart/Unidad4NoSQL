@@ -4,7 +4,7 @@ using Unidad4NoSQL.Model;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using MongoDB.Driver; // Necesario para algunas excepciones de Mongo
+using MongoDB.Driver;
 
 namespace Unidad4NoSQL.Controller
 {
@@ -19,26 +19,30 @@ namespace Unidad4NoSQL.Controller
         }
 
         public async Task<(int id, string mensaje)> RegistrarNuevoEmpleado(
-            Empleado empleado)     // Corregido: La vista DEBE pasar los IDs seleccionados
+            Empleado empleado)
         {
             try
-            {                
-                //(Inserción Atómica en Mongo)
+            {
                 _logger.Info($"Iniciando registro en Mongo...");
-                String idGenerado = await _empleadosData.InsertarEmpleadoAsync(empleado);
+                // idGenerado puede ser: ID, null, "DUPLICADO_PRINCIPAL" o "DUPLICADO_SECUNDARIO"
+                String resultado = await _empleadosData.InsertarEmpleadoAsync(empleado);
 
-                if (idGenerado.Length > 0)
+                //Verificación de CÓDIGO DE DUPLICIDAD
+                if (resultado == "DUPLICADO_PRINCIPAL" || resultado == "DUPLICADO_SECUNDARIO")
                 {
-                    return (0, "Empleado registrado exitosamente.");
+                    // Devolvemos -1 y el código de error
+                    return (-1, resultado);
                 }
-                else if (idGenerado.Length == -1)
+
+                //Verificación de ÉXITO (ID de DON Mongo)
+                if (!string.IsNullOrWhiteSpace(resultado) && resultado.Length >= 6)
                 {
-                    return (-1, "Fallo en el registro: Dato duplicado (Correo).");
+                    // Devolvemos 0 (Éxito)
+                    return (0, $"Empleado registrado exitosamente con ID: {resultado}");
                 }
-                else // idGenerado == -2 (Error general en DAL)
-                {
-                    return (-2, "Error desconocido al intentar insertar el documento en MongoDB.");
-                }
+
+                //Caso de error general
+                return (-2, "Error desconocido al intentar insertar el documento en MongoDB.");
             }
             catch (Exception ex)
             {

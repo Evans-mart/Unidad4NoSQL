@@ -20,49 +20,76 @@ namespace Unidad4NoSQL
         }
         private async Task GuardarEmpleadoAsync()
         {
-            // 1. Validaciones de la Vista
             if (!ValidarDatosFormulario())
             {
                 return;
             }
+
+            // Los textos de Correo Principal y Correo Secundario deben ser tratados
+            // como variables locales para mapeo después de la validación.
+            string correoP = txtCorreoPrincipal.Text.Trim();
+            string correoS = txtCorreoSecundario.Text.Trim();
+
+            // Validación de UNICIDAD aseguramos que no son iguales a nivel interfaz
+            if (!string.IsNullOrWhiteSpace(correoP) &&
+                correoP.Equals(correoS, StringComparison.OrdinalIgnoreCase))
+            {
+                MessageBox.Show("El Correo Principal y el Correo Secundario no pueden ser iguales.", "Validación Interna", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
             try
             {
-               
-                // 3. Mapeo de Correos
+                // Mapeo de Correos
                 List<Correo> correos = new List<Correo>();
-                correos.Add(new Correo { Tipo = "PRINCIPAL", Correo_Electronico = txtCorreoPrincipal.Text.Trim() });
-                if (!string.IsNullOrWhiteSpace(txtCorreoSecundario.Text))
+                // Solo se añade el correo secundario si no está vacío
+                correos.Add(new Correo { Tipo = "PRINCIPAL", Correo_Electronico = correoP });
+                if (!string.IsNullOrWhiteSpace(correoS))
                 {
-                    correos.Add(new Correo { Tipo = "SECUNDARIO", Correo_Electronico = txtCorreoSecundario.Text.Trim() });
+                    correos.Add(new Correo { Tipo = "SECUNDARIO", Correo_Electronico = correoS });
                 }
-                
-                // 4. Mapeo de Empleado
+
+                // Mapeo de Empleado
                 Empleado empleado = new Empleado
                 {
                     Correos = correos
                 };
 
-                // 5. Llamar al Controlador/Negocio
-                var (id, mensaje) = await _empleadosNegocio.RegistrarNuevoEmpleado(
-                    empleado);
+                // La tupla devuelve (0, ID) en éxito, o (-1, CÓDIGO_ERROR) en duplicidad.
+                var (codigo, mensaje) = await _empleadosNegocio.RegistrarNuevoEmpleado(empleado);
 
-            if (id == 0)
+                if (codigo == 0) // Éxito (ID de Mongo retornado)
                 {
                     MessageBox.Show($"Empleado registrado: {mensaje}", "Éxito", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
-                else
+                else if (codigo == -1) // Error de Duplicidad
                 {
-                    string prefijo = id == -1 ? "Error de Duplicidad" : "Fallo en el registro";
-                    MessageBox.Show($"{prefijo}: {mensaje}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    switch (mensaje)
+                    {
+                        case "DUPLICADO_PRINCIPAL":
+                            MessageBox.Show("El Correo Principal que intenta registrar ya se encuentra en uso.", "Error de Duplicidad", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            break;
+                        case "DUPLICADO_SECUNDARIO":
+                            MessageBox.Show("El Correo Secundario que intenta registrar ya se encuentra en uso.", "Error de Duplicidad", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            break;
+                        default:
+                            MessageBox.Show($"Fallo en el registro: {mensaje}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            break;
+                    }
+                }
+                else // Cualquier otro error 
+                {
+                    MessageBox.Show($"Fallo en el registro: {mensaje}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
 
             }
             catch (Exception ex)
             {
-                // Ahora esta captura es para errores inesperados o de conexión
+                // Ahora aquí es para errores de conexión
                 MessageBox.Show($"Error crítico en la aplicación: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
 
 
         private bool ValidarDatosFormulario()
@@ -70,11 +97,11 @@ namespace Unidad4NoSQL
             // --- Validación de Campos de Texto Obligatorio ---
             if (string.IsNullOrWhiteSpace(txtCorreoPrincipal.Text))
             {
-                MessageBox.Show("Asegúrese de haber llenado todos los campos obligatorios.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Asegúrese de haber llenado el Correo principal.", "Validación", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return false;
             }
 
-            // --- VALIDACIÓN DE FORMATO ---
+            // --- Validamos el mero formato ---
 
             if (!UsuariosNegocio.EsCorreoValido(txtCorreoPrincipal.Text.Trim()))
             {
@@ -82,7 +109,6 @@ namespace Unidad4NoSQL
                 return false;
             }
 
-            // Validar correo secundario si existe
             if (!string.IsNullOrWhiteSpace(txtCorreoSecundario.Text) && !UsuariosNegocio.EsCorreoValido(txtCorreoSecundario.Text.Trim()))
             {
                 MessageBox.Show("El formato del 'Correo Secundario' no es válido.", "Error de Formato", MessageBoxButtons.OK, MessageBoxIcon.Warning);
