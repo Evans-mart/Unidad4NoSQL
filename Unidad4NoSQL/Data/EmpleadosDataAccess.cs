@@ -17,7 +17,7 @@ namespace Unidad4NoSQL.Data
         // Retorna el ID (string), o el código de error ("DUPLICADO"), o null.
         public async Task<string> InsertarEmpleadoAsync(Empleado empleado)
         {
-            _logger.Info($"Iniciando inserción de Empleado en MongoDB a través de DAL...");
+            _logger.Info($"Iniciando inserción de Empleado en MongoDB...");
 
             // Llamamos al método real de inserción en MongoDBDataAccess
             string resultado = await _mongoData.InsertarUsuarioAsync(empleado);

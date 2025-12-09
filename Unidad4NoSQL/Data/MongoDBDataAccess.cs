@@ -57,6 +57,8 @@ namespace Unidad4NoSQL.Data
         {
             //EXTRAER y NORMALIZAR Correos a validar
             string correoPrincipal = nuevoEmpleado.Correos.Find(c => c.Tipo.Equals("PRINCIPAL", StringComparison.OrdinalIgnoreCase))?.Correo_Electronico.Trim().ToLowerInvariant();
+
+
             string correoSecundario = nuevoEmpleado.Correos.Find(c => c.Tipo.Equals("SECUNDARIO", StringComparison.OrdinalIgnoreCase))?.Correo_Electronico.Trim().ToLowerInvariant();
 
             //Aqui ya validamos contra la bd de Don MONGO
